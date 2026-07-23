@@ -538,7 +538,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         ChatMessage(
                             sessionId = existingId,  // FIXED: Use non-nullable
                             role = it.role,
-                            content = json.encodeToString(JsonElement.serializer(), it.content)
+                            content = json.encodeToString(JsonElement.serializer(), it.content),
+                            modelUsed = it.modelUsed,
+                            cost = it.cost
                         )
                     }
                     repository.insertSessionAndMessages(session, chatMessages)  // Replaces due to OnConflict.REPLACE
@@ -563,7 +565,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     ChatMessage(
                         sessionId = sessionId,  // Non-null by construction
                         role = it.role,
-                        content = json.encodeToString(JsonElement.serializer(), it.content)
+                        content = json.encodeToString(JsonElement.serializer(), it.content),
+                        modelUsed = it.modelUsed,
+                        cost = it.cost
                     )
                 }
                 repository.insertSessionAndMessages(session, chatMessages)
@@ -612,7 +616,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             json.parseToJsonElement(it.content)
                         } catch (e: Exception) {
                             JsonPrimitive(it.content)
-                        }
+                        },
+                        modelUsed = it.modelUsed,
+                        cost = it.cost
                     )
                 })
                 currentSessionId = sessionId
@@ -3337,7 +3343,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             role = "assistant",
                             content = JsonPrimitive(accumulatedResponse + citationsMarkdown),
                             toolCalls = toolCallBuffer,
-                            imageUri = downloadedUris.firstOrNull()
+                            imageUri = downloadedUris.firstOrNull(),
+                            modelUsed = modelForRequest
                         )
                         withContext(Dispatchers.Main) {
                             updateMessages {
@@ -3356,7 +3363,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                     list[list.size - 1] = last.copy(
                                         content = JsonPrimitive(finalContent),
                                         reasoning = accumulatedReasoning,
-                                        imageUri = downloadedUris.firstOrNull()
+                                        imageUri = downloadedUris.firstOrNull(),
+                                        modelUsed = modelForRequest
                                     )
                                 }
                             }
@@ -3422,6 +3430,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 transforms = if (sharedPreferencesHelper.getOpenRouterTransformsEnabled() && !activeModelIsLan())
                     listOf("middle-out")
                 else null,
+                usage = UsageRequest(include = true),
                 stream = true,
                 max_tokens = maxTokens,
                 tools = if (_isToolsEnabled.value == true) buildTools() else null,
@@ -3500,6 +3509,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     var hasUsedReasoningDetails = false
                     var reasoningStarted = false
                     var finish_reason: String? = null
+                    var finalUsage: UsageResponse? = null
                     val toolCallBuffer = mutableListOf<ToolCall>()
                     val accumulatedAnnotations = mutableListOf<Annotation>()
                     val accumulatedImages = mutableListOf<String>()
@@ -3527,6 +3537,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                     }
                                     return@execute
                                 }
+
+                                chunk.usage?.let { finalUsage = it }
 
                                 val choice = chunk.choices.firstOrNull()
                                 finish_reason = choice?.finish_reason ?: finish_reason
@@ -3708,7 +3720,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             role = "assistant",
                             content = JsonPrimitive(accumulatedResponse + citationsMarkdown),
                             toolCalls = toolCallBuffer,
-                            imageUri = downloadedUris.firstOrNull()
+                            imageUri = downloadedUris.firstOrNull(),
+                            modelUsed = modelForRequest,
+                            cost = finalUsage?.cost
                         )
                         withContext(Dispatchers.Main) {
                             updateMessages {
@@ -3728,7 +3742,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                     list[list.size - 1] = last.copy(
                                         content = JsonPrimitive(finalContent),
                                         reasoning = accumulatedReasoning,
-                                        imageUri = downloadedUris.firstOrNull()
+                                        imageUri = downloadedUris.firstOrNull(),
+                                        modelUsed = modelForRequest,
+                                        cost = finalUsage?.cost
                                     )
                                 }
                             }
@@ -3911,7 +3927,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     val assistantMessage = FlexibleMessage(
                         role = "assistant",
                         content = JsonPrimitive(cleanContent ?: ("" + citationsMarkdown)),
-                        toolCalls = toolCalls
+                        toolCalls = toolCalls,
+                        modelUsed = modelForRequest
                     )
                     updateMessages { list ->
                         if (thinkingMessage != null) {
@@ -3931,7 +3948,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     handleSuccessResponse(
                         chatResponse,
                         thinkingMessage,
-                        downloadedUris
+                        downloadedUris,
+                        modelUsed = modelForRequest
                     )
                 }
             }
@@ -3965,7 +3983,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     else
                         null,
                     //logprobs = null,
-                    //  usage = UsageRequest(include = true),
+                    usage = UsageRequest(include = true),
                     max_tokens = maxTokens,
                     reasoning = if (_isReasoningEnabled.value == true && isReasoningModel(
                             _activeChatModel.value
@@ -4112,7 +4130,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     val assistantMessage = FlexibleMessage(
                         role = "assistant",
                         content = JsonPrimitive(choice.message.content ?: ("" + citationsMarkdown)),
-                        toolCalls = toolCalls
+                        toolCalls = toolCalls,
+                        modelUsed = modelForRequest,
+                        cost = chatResponse.usage?.cost
                     )
                     updateMessages { list ->
                         if (thinkingMessage != null) {
@@ -4133,7 +4153,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     handleSuccessResponse(
                         chatResponse,
                         thinkingMessage,
-                        downloadedUris
+                        downloadedUris,
+                        modelUsed = modelForRequest,
+                        cost = chatResponse.usage?.cost
                     )  // NEW: Pass Uris
                 }
             }
@@ -4150,7 +4172,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private fun handleSuccessResponse(
         chatResponse: ChatResponse,
         thinkingMessage: FlexibleMessage?,
-        downloadedUris: List<String> = emptyList()
+        downloadedUris: List<String> = emptyList(),
+        modelUsed: String? = null,
+        cost: Double? = null
     ) {
         val message = chatResponse.choices.firstOrNull()?.message ?: throw IllegalStateException("No message")
         val responseText = message.content ?: "No response received."
@@ -4175,7 +4199,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             role = "assistant",
             content = JsonPrimitive(finalContent),
             toolsUsed = thinkingMessage == null,
-            reasoning = reasoningForDisplay + separator
+            reasoning = reasoningForDisplay + separator,
+            modelUsed = modelUsed,
+            cost = cost
         )
         if (downloadedUris.isNotEmpty()) {
             finalAiMessage = finalAiMessage.copy(imageUri = downloadedUris.first())

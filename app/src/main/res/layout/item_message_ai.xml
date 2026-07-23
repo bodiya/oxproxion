@@ -91,56 +91,17 @@
             android:visibility="visible"
             app:tint="#777777" />
         <ImageButton
-            android:id="@+id/aipdfButton"
+            android:id="@+id/exportButton"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginStart="8dp"
             android:layout_marginBottom="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Make PDF"
+            android:contentDescription="Export options"
             android:padding="4dp"
-            android:src="@drawable/ic_pdfnew"
+            android:src="@drawable/ic_export"
             app:tint="#777777"
             app:layout_constraintStart_toEndOf="@id/editButton"
-            app:layout_constraintTop_toBottomOf="@id/messageContainer" />
-        <ImageButton
-            android:id="@+id/markdownButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginBottom="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Make MD"
-            android:padding="4dp"
-            android:src="@drawable/ic_markdown"
-            app:tint="#777777"
-            app:layout_constraintStart_toEndOf="@id/aipdfButton"
-            app:layout_constraintTop_toBottomOf="@id/messageContainer" />
-        <ImageButton
-            android:id="@+id/pngButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginBottom="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Make MD"
-            android:padding="4dp"
-            android:src="@drawable/ic_png"
-            app:tint="#777777"
-            app:layout_constraintStart_toEndOf="@id/markdownButton"
-            app:layout_constraintTop_toBottomOf="@id/messageContainer" />
-        <ImageButton
-            android:id="@+id/htmlButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginBottom="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="View in HTML (scrollable code/tables)"
-            android:padding="4dp"
-            android:src="@drawable/ic_html"
-            app:tint="#777777"
-            app:layout_constraintStart_toEndOf="@id/pngButton"
             app:layout_constraintTop_toBottomOf="@id/messageContainer" />
 
         <ImageButton
@@ -154,7 +115,7 @@
             android:padding="4dp"
             android:src="@drawable/ic_share"
             app:tint="#777777"
-            app:layout_constraintStart_toEndOf="@id/htmlButton"
+            app:layout_constraintStart_toEndOf="@id/exportButton"
             app:layout_constraintTop_toBottomOf="@id/messageContainer" />
 
         <!-- ttsButton -->
@@ -172,15 +133,16 @@
             app:layout_constraintStart_toEndOf="@id/shareButton"
             app:layout_constraintTop_toBottomOf="@id/messageContainer" />
         <ImageButton
-            android:id="@+id/saveFileButton"
+            android:id="@+id/infoButton"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginStart="8dp"
             android:layout_marginBottom="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Save as file"
+            android:contentDescription="Response info"
             android:padding="4dp"
-            android:src="@drawable/ic_filesave"
+            android:src="@drawable/ic_info"
+            android:visibility="gone"
             app:tint="#777777"
             app:layout_constraintStart_toEndOf="@id/ttsButton"
             app:layout_constraintTop_toBottomOf="@id/messageContainer" />
@@ -196,7 +158,7 @@
             android:src="@drawable/ic_expand_more"
             android:visibility="visible"
             app:tint="#777777"
-            app:layout_constraintStart_toEndOf="@id/saveFileButton"
+            app:layout_constraintStart_toEndOf="@id/infoButton"
             app:layout_constraintTop_toBottomOf="@id/messageContainer" />
 
 

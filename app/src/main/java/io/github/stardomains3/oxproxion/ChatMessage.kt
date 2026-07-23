@@ -20,5 +20,7 @@ data class ChatMessage(
     val id: Long = 0,
     val sessionId: Long,
     val role: String,
-    val content: String
+    val content: String,
+    val modelUsed: String? = null,
+    val cost: Double? = null
 )
