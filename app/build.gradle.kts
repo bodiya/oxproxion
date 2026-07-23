@@ -38,11 +38,23 @@ android {
         includeInApk = false
         includeInBundle = false
     }
+    signingConfigs {
+        // Dev signing key committed to the repo so CI-built APKs share a
+        // consistent signature and can update over each other without an
+        // uninstall. NOT a secret and NOT for store releases — override via
+        // the SIGNING_* environment variables to use a real key.
+        create("dev") {
+            storeFile = file(System.getenv("SIGNING_STORE_FILE") ?: rootProject.file("keystore/dev-signing.keystore").path)
+            storePassword = System.getenv("SIGNING_STORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: "oxproxion-dev"
+            keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: "android"
+        }
+    }
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
-
+            signingConfig = signingConfigs.getByName("dev")
 
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
