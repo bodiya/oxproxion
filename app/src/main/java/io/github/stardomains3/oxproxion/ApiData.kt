@@ -2,6 +2,7 @@ package io.github.stardomains3.oxproxion
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 
@@ -69,7 +70,11 @@ data class FlexibleMessage(
     val reasoning: String? = null,
     val thinking: String? = null,
     @SerialName("image_uri")  // NEW: String for serialization (parse to Uri later)
-    val imageUri: String? = null  // For user/generated images (original Uri.toString())
+    val imageUri: String? = null,  // For user/generated images (original Uri.toString())
+    @Transient
+    val modelUsed: String? = null,  // Model that produced this assistant message; never sent to the API
+    @Transient
+    val cost: Double? = null  // OpenRouter-reported cost in credits (USD); never sent to the API
 )
 
 @Serializable
@@ -274,7 +279,8 @@ data class StreamedChatResponse(
     val created: Long,
     val choices: List<StreamedChoice>,
     val provider: String? = null,
-    val error: ApiError? = null
+    val error: ApiError? = null,
+    val usage: UsageResponse? = null  // Final chunk carries usage when accounting is requested
 )
 
 @Serializable

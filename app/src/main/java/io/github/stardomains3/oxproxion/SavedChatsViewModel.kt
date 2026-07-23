@@ -37,7 +37,9 @@ class SavedChatsViewModel(application: Application) : AndroidViewModel(applicati
                 messages = sessionWithMessages.messages.map { message ->
                     ExportedChatMessage(
                         role = message.role,
-                        content = message.content
+                        content = message.content,
+                        modelUsed = message.modelUsed,
+                        cost = message.cost
                     )
                 }
             )
@@ -59,7 +61,9 @@ class SavedChatsViewModel(application: Application) : AndroidViewModel(applicati
                     ChatMessage(
                         sessionId = 0, // This will be overridden by the DAO
                         role = exportedMessage.role,
-                        content = exportedMessage.content
+                        content = exportedMessage.content,
+                        modelUsed = exportedMessage.modelUsed,
+                        cost = exportedMessage.cost
                     )
                 }
                 repository.insertSessionAndMessages(session, messages)

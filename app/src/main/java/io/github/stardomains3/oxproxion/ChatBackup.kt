@@ -17,5 +17,7 @@ data class ExportedChatSession(
 @Serializable
 data class ExportedChatMessage(
     val role: String,
-    val content: String // The raw JSON content from the database
+    val content: String, // The raw JSON content from the database
+    val modelUsed: String? = null,
+    val cost: Double? = null
 )

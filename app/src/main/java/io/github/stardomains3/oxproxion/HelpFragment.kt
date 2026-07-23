@@ -241,12 +241,8 @@ class HelpFragment : Fragment(R.layout.fragment_help) {
             *   **Copy User Message**: Tap the **user icon** to copy your message.
             *   **Share AI Response**: Tap the **share icon** to send the AI's text to other apps. Long-press to share the raw markdown of the response.
             *   **Speak AI Response**: Tap the **speaker icon** to speak out loud the AI's response(Up to 3900 characters.) Will not display if your device's text-to-speech engine isn't available. Long-press to save an audio wav file of the AI's response to your downloads folder. (Made on device using Android tools. Generation usually done in seconds.)
-            *   **Create PDF of Response**: Tap the **pdf icon** to save just that response as a PDF in your device's Downloads folder. Long-press for .jpg.
-            *   **Create Markdown File of Response**: Tap the **Markdown icon** to save just that response as a .md file in your device's Downloads folder. Long-press to save a .txt file in your device's Downloads folder.
-            *   **Save File of Response**: Tap the **Save File icon** to save just that response as a file in your device's Downloads folder. A dialog will appear asking for the name and extension of the file to be saved.
-            *   **Create PNG File of Response**: Tap the **PNG icon** to save just that response as a .png file in your device's Downloads folder. Long-press for .webp. 
-            *   **View HTML of Response**: Tap the **HTML icon** to view the AI response in HTML in an Android Webview. This makes code blocks easier to read, allows one tap copy of them and other view improvements. A print option appears in the screen too.
-            *   **Save HTML of Response**: Long-Press the **HTML icon** to save the AI response as an HTML file in your device's Downloads folder.
+            *   **Export Response**: Tap the **export icon** to open a menu of export options for just that response: save as PDF, Markdown (.md), Text (.txt), PNG, JPG, WebP, view as HTML (easier reading of code blocks, one-tap copy, print option), save as HTML, or save as a file with a custom name and extension. Files are saved in your device's Downloads folder.
+            *   **Response Info**: Tap the **info icon** on a response to see which model generated it and, for OpenRouter models, what the request cost.
             *   **Edit User Message**: Tap the **edit icon** on a user message to load its text into the input box for editing. Caution: this removes the message and all subsequent messages from the history.
             *   **Resend User Message**: Tap the **resend icon** on a user message to resend the prompt and generate a new response. Caution: this removes all messages after it while keeping the original prompt.
 

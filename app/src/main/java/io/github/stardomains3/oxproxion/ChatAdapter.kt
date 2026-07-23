@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -25,6 +26,7 @@ import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
 import coil.ImageLoader
 import coil.request.ImageRequest
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import io.noties.markwon.Markwon
 import io.noties.markwon.utils.NoCopySpannableFactory
@@ -42,6 +44,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.util.Locale
 
 class ChatAdapter(
     private val scope: CoroutineScope,
@@ -293,6 +296,17 @@ class ChatAdapter(
         const val VIEW_TYPE_ASSISTANT = 2
         const val VIEW_TYPE_THINKING = 3
         const val VIEW_TYPE_HIDDEN = 4
+
+        // Export dropdown menu item ids
+        private const val EXPORT_PDF = 1
+        private const val EXPORT_MARKDOWN = 2
+        private const val EXPORT_TEXT = 3
+        private const val EXPORT_PNG = 4
+        private const val EXPORT_JPG = 5
+        private const val EXPORT_WEBP = 6
+        private const val EXPORT_VIEW_HTML = 7
+        private const val EXPORT_SAVE_HTML = 8
+        private const val EXPORT_SAVE_FILE = 9
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -531,18 +545,15 @@ class ChatAdapter(
 
         private val messageTextView: TextView = itemView.findViewById(R.id.messageTextView)
         private val copyButton: ImageButton = itemView.findViewById(R.id.copyButton)
-        private val aipdfButton: ImageButton = itemView.findViewById(R.id.aipdfButton)
+        private val exportButton: ImageButton = itemView.findViewById(R.id.exportButton)
         private val shareButton: ImageButton = itemView.findViewById(R.id.shareButton)
-        private val markdownButton: ImageButton = itemView.findViewById(R.id.markdownButton)
-        private val pngButton: ImageButton = itemView.findViewById(R.id.pngButton)
         val ttsButton: ImageButton = itemView.findViewById(R.id.ttsButton)
         private val generatedImageView: ImageView = itemView.findViewById(R.id.generatedImageView)
         val messageContainer: ConstraintLayout = itemView.findViewById(R.id.messageContainer)
         private var pulseAnimator: ObjectAnimator? = null
         private var bgColorAnimator: ObjectAnimator? = null
-        private val htmlButton: ImageButton = itemView.findViewById(R.id.htmlButton)
         private val collapseToggleButton: ImageButton = itemView.findViewById(R.id.collapseToggleButton)
-        private val saveFileButton: ImageButton = itemView.findViewById(R.id.saveFileButton)
+        private val infoButton: ImageButton = itemView.findViewById(R.id.infoButton)
         private val editButton: ImageButton = itemView.findViewById(R.id.editButton)
         // Configuration for "Long Message" detection
         private val CHAR_THRESHOLD = 350
@@ -694,19 +705,60 @@ class ChatAdapter(
             }
 
             // 6. BUTTON LISTENERS (Lazy Calculation)
-            htmlButton.setOnClickListener {
+            exportButton.setOnClickListener { anchor ->
                 val fullRawMarkdown = ensureTableSpacing(reasoningText + text)
-                if (fullRawMarkdown.isNotBlank()) {
-                    onShowMarkdown.invoke(fullRawMarkdown)
+                val popup = PopupMenu(itemView.context, anchor)
+                popup.menu.apply {
+                    add(0, EXPORT_PDF, 0, "Save as PDF")
+                    add(0, EXPORT_MARKDOWN, 1, "Save as Markdown (.md)")
+                    add(0, EXPORT_TEXT, 2, "Save as Text (.txt)")
+                    add(0, EXPORT_PNG, 3, "Save as PNG")
+                    add(0, EXPORT_JPG, 4, "Save as JPG")
+                    add(0, EXPORT_WEBP, 5, "Save as WebP")
+                    add(0, EXPORT_VIEW_HTML, 6, "View as HTML")
+                    add(0, EXPORT_SAVE_HTML, 7, "Save as HTML")
+                    add(0, EXPORT_SAVE_FILE, 8, "Save as file…")
                 }
+                popup.setOnMenuItemClickListener { item ->
+                    when (item.itemId) {
+                        EXPORT_PDF -> { exportPdf(message, fullRawMarkdown); true }
+                        EXPORT_MARKDOWN -> { onSaveMarkdown(bindingAdapterPosition, fullRawMarkdown); true }
+                        EXPORT_TEXT -> { onSaveText(bindingAdapterPosition, messageTextView.text.toString()); true }
+                        EXPORT_PNG -> { onCaptureItemToBitmap(bindingAdapterPosition, "png"); true }
+                        EXPORT_JPG -> { onCaptureItemToBitmap(bindingAdapterPosition, "jpg"); true }
+                        EXPORT_WEBP -> { onCaptureItemToBitmap(bindingAdapterPosition, "webp"); true }
+                        EXPORT_VIEW_HTML -> {
+                            if (fullRawMarkdown.isNotBlank()) onShowMarkdown.invoke(fullRawMarkdown)
+                            true
+                        }
+                        EXPORT_SAVE_HTML -> {
+                            if (fullRawMarkdown.isNotBlank()) onSaveHtml.invoke(fullRawMarkdown)
+                            true
+                        }
+                        EXPORT_SAVE_FILE -> { onSaveAsFile.invoke(text); true }
+                        else -> false
+                    }
+                }
+                popup.show()
             }
-            htmlButton.setOnLongClickListener {
-                val fullRawMarkdown = ensureTableSpacing(reasoningText + text)
-                if (fullRawMarkdown.isNotBlank()) {
-                    onSaveHtml.invoke(fullRawMarkdown)
-                    true // Consume long press
-                } else false
+
+            val infoModel = message.modelUsed
+            val infoCost = message.cost
+            if ((infoModel != null || infoCost != null) && !isThinking && !isError) {
+                infoButton.visibility = View.VISIBLE
+                infoButton.setOnClickListener {
+                    val costText = infoCost?.let { c -> String.format(Locale.US, "$%.6f", c) } ?: "Not reported"
+                    MaterialAlertDialogBuilder(itemView.context)
+                        .setTitle("Response Info")
+                        .setMessage("Model: ${infoModel ?: "Unknown"}\n\nCost: $costText")
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            } else {
+                infoButton.visibility = View.GONE
+                infoButton.setOnClickListener(null)
             }
+
             editButton.setOnClickListener {
                 // Pass the position and the raw text to the fragment
                 val fullRawMarkdown = ensureTableSpacing(reasoningText + text)
@@ -776,8 +828,9 @@ class ChatAdapter(
                 true
             }
 
-            aipdfButton.setOnClickListener {
-                val fullRawMarkdown = ensureTableSpacing(reasoningText + text)
+        }
+
+        private fun exportPdf(message: FlexibleMessage, fullRawMarkdown: String) {
                 CoroutineScope(Dispatchers.Main).launch {
                     val pdfUri = withContext(Dispatchers.IO) {
                         try {
@@ -827,35 +880,6 @@ class ChatAdapter(
                         Toast.makeText(itemView.context, "Failed to save PDF", Toast.LENGTH_SHORT).show()
                     }
                 }
-            }
-
-            pngButton.setOnClickListener {
-                onCaptureItemToBitmap(bindingAdapterPosition, "png")
-            }
-
-            pngButton.setOnLongClickListener {
-                onCaptureItemToBitmap(bindingAdapterPosition, "webp")
-                true
-            }
-
-            aipdfButton.setOnLongClickListener {
-                onCaptureItemToBitmap(bindingAdapterPosition, "jpg")
-                true
-            }
-
-            markdownButton.setOnClickListener {
-                val fullRawMarkdown = ensureTableSpacing(reasoningText + text)
-                onSaveMarkdown(bindingAdapterPosition, fullRawMarkdown)
-            }
-
-            markdownButton.setOnLongClickListener {
-                onSaveText(bindingAdapterPosition, messageTextView.text.toString())
-                true
-            }
-            saveFileButton.setOnClickListener {
-                //  onSaveAsFile.invoke(messageTextView.text.toString())
-                onSaveAsFile.invoke(text)
-            }
         }
 
         internal fun stopPulse() {
