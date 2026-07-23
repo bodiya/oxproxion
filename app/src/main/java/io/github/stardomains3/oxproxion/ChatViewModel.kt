@@ -780,11 +780,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val thinkingMessage = THINKING_MESSAGE
         val messagesForApiRequest = mutableListOf<FlexibleMessage>()
 
-        if (systemMessage != null) {
+        val effectiveSystemMessage = applyContextPreamble(systemMessage)
+        if (effectiveSystemMessage != null) {
             messagesForApiRequest.add(
                 FlexibleMessage(
                     role = "system",
-                    content = JsonPrimitive(systemMessage)
+                    content = JsonPrimitive(effectiveSystemMessage)
                 )
             )
         }
@@ -1085,11 +1086,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         truncateHistory(userMessageIndex + 1)
 
         val messagesForApiRequest = mutableListOf<FlexibleMessage>()
-        if (systemMessage != null) {
+        val effectiveSystemMessage = applyContextPreamble(systemMessage)
+        if (effectiveSystemMessage != null) {
             messagesForApiRequest.add(
                 FlexibleMessage(
                     role = "system",
-                    content = JsonPrimitive(systemMessage)
+                    content = JsonPrimitive(effectiveSystemMessage)
                 )
             )
         }
@@ -4505,6 +4507,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val customModels = sharedPreferencesHelper.getCustomModels()
         val allModels = builtInModels + customModels
         return allModels.find { it.apiIdentifier == apiIdentifier }?.displayName ?: apiIdentifier
+    }
+
+    // Appends model identity and current date/time to the system message when the
+    // "context preamble" setting is on, so the model knows who it is and what day it is.
+    private fun applyContextPreamble(systemMessage: String?): String? {
+        if (!sharedPreferencesHelper.getContextPreambleEnabled()) return systemMessage
+        val modelId = _activeChatModel.value ?: return systemMessage
+        val displayName = getModelDisplayName(modelId)
+        val identity = if (displayName != modelId) "$displayName ($modelId)" else modelId
+        val now = SimpleDateFormat("EEEE, yyyy-MM-dd HH:mm zzz", Locale.getDefault()).format(Date())
+        val preamble = "Context: You are the model $identity. The current local date and time is $now."
+        return if (systemMessage.isNullOrBlank()) preamble else "$systemMessage\n\n$preamble"
     }
     fun consumeSharedText(text: String) {
         _sharedText.value = text

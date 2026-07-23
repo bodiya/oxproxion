@@ -58,6 +58,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val maxTokensButton = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.maxTokensButton)
         val lanButton = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.lanButton)
         val openRouterTransformsSwitch = view.findViewById<MaterialSwitch>(R.id.openRouterTransformsSwitch)
+        val contextPreambleSwitch = view.findViewById<MaterialSwitch>(R.id.contextPreambleSwitch)
         val voiceModelEdit = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.voiceInputModelEdit)
         val voiceProviderToggle = view.findViewById<com.google.android.material.button.MaterialButtonToggleGroup>(R.id.voiceInputProviderToggle)
         biometricsSwitch.isChecked = prefs.getBiometricEnabled()
@@ -85,6 +86,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         copyOrOpenSwitch.isChecked = prefs.getUseCopyButton()
         autoDisableWebSearchSwitch.isChecked = prefs.getDisableWebSearchAfterSend()
         openRouterTransformsSwitch.isChecked = prefs.getOpenRouterTransformsEnabled()
+        contextPreambleSwitch.isChecked = prefs.getContextPreambleEnabled()
         showCitationsSwitch.isChecked = prefs.getShowCitations()
         voiceModelEdit.setText(prefs.getVoiceInputModel())
         when (prefs.getVoiceInputProvider()) {
@@ -139,6 +141,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
         openRouterTransformsSwitch.setOnCheckedChangeListener { _, isChecked ->
             prefs.saveOpenRouterTransformsEnabled(isChecked)
+        }
+        contextPreambleSwitch.setOnCheckedChangeListener { _, isChecked ->
+            prefs.saveContextPreambleEnabled(isChecked)
         }
         themeToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (isChecked) { // Only trigger when a button is selected
@@ -292,6 +297,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             R.id.extendedTopBarSwitch,
             R.id.autoBackSwitch,
             R.id.openRouterTransformsSwitch,
+            R.id.contextPreambleSwitch,
             R.id.showCitationsSwitch,
             R.id.animateBarOnErrorSwitch
         ).forEach { id ->

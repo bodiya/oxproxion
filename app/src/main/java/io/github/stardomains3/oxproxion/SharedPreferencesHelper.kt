@@ -68,6 +68,7 @@ class SharedPreferencesHelper(context: Context) {
         private const val KEY_SHOW_CITATIONS = "show_citations"
         private const val KEY_EXTENDED_TOP_BAR = "extended_top_bar_enabled"
         private const val KEY_OPENROUTER_TRANSFORMS_ENABLED = "openrouter_transforms_enabled"
+        private const val KEY_CONTEXT_PREAMBLE_ENABLED = "context_preamble_enabled"
         private const val KEY_EXPANDABLE_INPUT = "expandable_input_enabled"
         const val LAN_API_KEY = "lan_api_key"  // NEW
         private const val KEY_TIMEOUT_MINUTES = "timeout_minutes"
@@ -217,6 +218,14 @@ class SharedPreferencesHelper(context: Context) {
     fun saveInferencePresencePenaltyEnabled(enabled: Boolean) = mainPrefs.edit { putBoolean(KEY_INFERENCE_PRESENCE_PENALTY_ENABLED, enabled) }
     fun getInferencePresencePenaltyValue(): String = mainPrefs.getString(KEY_INFERENCE_PRESENCE_PENALTY_VALUE, "0.0") ?: "0.0"
     fun saveInferencePresencePenaltyValue(value: String) = mainPrefs.edit { putString(KEY_INFERENCE_PRESENCE_PENALTY_VALUE, value) }
+
+    fun saveContextPreambleEnabled(enabled: Boolean) {
+        mainPrefs.edit { putBoolean(KEY_CONTEXT_PREAMBLE_ENABLED, enabled) }
+    }
+
+    fun getContextPreambleEnabled(): Boolean {
+        return mainPrefs.getBoolean(KEY_CONTEXT_PREAMBLE_ENABLED, false)
+    }
 
     fun saveOpenRouterTransformsEnabled(enabled: Boolean) {
         mainPrefs.edit { putBoolean(KEY_OPENROUTER_TRANSFORMS_ENABLED, enabled) }
