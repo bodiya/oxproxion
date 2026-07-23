@@ -747,10 +747,28 @@ class ChatAdapter(
             if ((infoModel != null || infoCost != null) && !isThinking && !isError) {
                 infoButton.visibility = View.VISIBLE
                 infoButton.setOnClickListener {
-                    val costText = infoCost?.let { c -> String.format(Locale.US, "$%.6f", c) } ?: "Not reported"
+                    val info = buildString {
+                        append("Model: ${infoModel ?: "Unknown"}")
+                        message.provider?.let { append("\nProvider: $it") }
+                        message.promptTokens?.let { append("\nPrompt tokens: $it") }
+                        message.completionTokens?.let { append("\nCompletion tokens: $it") }
+                        message.reasoningTokens?.takeIf { it > 0 }?.let { append("\nReasoning tokens: $it") }
+                        append("\nCost: " + (infoCost?.let { c -> String.format(Locale.US, "$%.6f", c) } ?: "Not reported"))
+                        val conversationTotal = messages.sumOf { m -> m.cost ?: 0.0 }
+                        if (conversationTotal > 0.0) {
+                            append("\nConversation so far: " + String.format(Locale.US, "$%.6f", conversationTotal))
+                        }
+                        message.durationMs?.let { d ->
+                            val seconds = d / 1000.0
+                            append("\nGeneration time: " + String.format(Locale.US, "%.1fs", seconds))
+                            message.completionTokens?.takeIf { seconds > 0.5 }?.let { ct ->
+                                append(String.format(Locale.US, " (%.1f tok/s)", ct / seconds))
+                            }
+                        }
+                    }
                     MaterialAlertDialogBuilder(itemView.context)
                         .setTitle("Response Info")
-                        .setMessage("Model: ${infoModel ?: "Unknown"}\n\nCost: $costText")
+                        .setMessage(info)
                         .setPositiveButton("OK", null)
                         .show()
                 }

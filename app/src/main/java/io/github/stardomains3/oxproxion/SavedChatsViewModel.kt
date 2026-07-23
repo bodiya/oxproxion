@@ -39,7 +39,12 @@ class SavedChatsViewModel(application: Application) : AndroidViewModel(applicati
                         role = message.role,
                         content = message.content,
                         modelUsed = message.modelUsed,
-                        cost = message.cost
+                        cost = message.cost,
+                        provider = message.provider,
+                        promptTokens = message.promptTokens,
+                        completionTokens = message.completionTokens,
+                        reasoningTokens = message.reasoningTokens,
+                        durationMs = message.durationMs
                     )
                 }
             )
@@ -63,7 +68,12 @@ class SavedChatsViewModel(application: Application) : AndroidViewModel(applicati
                         role = exportedMessage.role,
                         content = exportedMessage.content,
                         modelUsed = exportedMessage.modelUsed,
-                        cost = exportedMessage.cost
+                        cost = exportedMessage.cost,
+                        provider = exportedMessage.provider,
+                        promptTokens = exportedMessage.promptTokens,
+                        completionTokens = exportedMessage.completionTokens,
+                        reasoningTokens = exportedMessage.reasoningTokens,
+                        durationMs = exportedMessage.durationMs
                     )
                 }
                 repository.insertSessionAndMessages(session, messages)

@@ -19,5 +19,10 @@ data class ExportedChatMessage(
     val role: String,
     val content: String, // The raw JSON content from the database
     val modelUsed: String? = null,
-    val cost: Double? = null
+    val cost: Double? = null,
+    val provider: String? = null,
+    val promptTokens: Int? = null,
+    val completionTokens: Int? = null,
+    val reasoningTokens: Int? = null,
+    val durationMs: Long? = null
 )
