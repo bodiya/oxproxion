@@ -74,7 +74,17 @@ data class FlexibleMessage(
     @Transient
     val modelUsed: String? = null,  // Model that produced this assistant message; never sent to the API
     @Transient
-    val cost: Double? = null  // OpenRouter-reported cost in credits (USD); never sent to the API
+    val cost: Double? = null,  // OpenRouter-reported cost in credits (USD); never sent to the API
+    @Transient
+    val provider: String? = null,  // Upstream provider OpenRouter routed to; never sent to the API
+    @Transient
+    val promptTokens: Int? = null,
+    @Transient
+    val completionTokens: Int? = null,
+    @Transient
+    val reasoningTokens: Int? = null,
+    @Transient
+    val durationMs: Long? = null  // Wall-clock request-to-response time
 )
 
 @Serializable

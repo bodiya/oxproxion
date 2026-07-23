@@ -540,7 +540,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             role = it.role,
                             content = json.encodeToString(JsonElement.serializer(), it.content),
                             modelUsed = it.modelUsed,
-                            cost = it.cost
+                            cost = it.cost,
+                            provider = it.provider,
+                            promptTokens = it.promptTokens,
+                            completionTokens = it.completionTokens,
+                            reasoningTokens = it.reasoningTokens,
+                            durationMs = it.durationMs
                         )
                     }
                     repository.insertSessionAndMessages(session, chatMessages)  // Replaces due to OnConflict.REPLACE
@@ -567,7 +572,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         role = it.role,
                         content = json.encodeToString(JsonElement.serializer(), it.content),
                         modelUsed = it.modelUsed,
-                        cost = it.cost
+                        cost = it.cost,
+                        provider = it.provider,
+                        promptTokens = it.promptTokens,
+                        completionTokens = it.completionTokens,
+                        reasoningTokens = it.reasoningTokens,
+                        durationMs = it.durationMs
                     )
                 }
                 repository.insertSessionAndMessages(session, chatMessages)
@@ -618,7 +628,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             JsonPrimitive(it.content)
                         },
                         modelUsed = it.modelUsed,
-                        cost = it.cost
+                        cost = it.cost,
+                        provider = it.provider,
+                        promptTokens = it.promptTokens,
+                        completionTokens = it.completionTokens,
+                        reasoningTokens = it.reasoningTokens,
+                        durationMs = it.durationMs
                     )
                 })
                 currentSessionId = sessionId
@@ -3152,6 +3167,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             try {
+                val streamStartMs = System.currentTimeMillis()
                 lanHttpClient.preparePost(activeChatUrl) {
                     header("Authorization", "Bearer $activeChatApiKey")
                     contentType(ContentType.Application.Json)
@@ -3338,13 +3354,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         formatCitations(accumulatedAnnotations)
                     } else ""
 
+                    val streamDurationMs = System.currentTimeMillis() - streamStartMs
                     if (hadToolCalls && !toolCallsHandledForTurn) {
                         val assistantMessage = FlexibleMessage(
                             role = "assistant",
                             content = JsonPrimitive(accumulatedResponse + citationsMarkdown),
                             toolCalls = toolCallBuffer,
                             imageUri = downloadedUris.firstOrNull(),
-                            modelUsed = modelForRequest
+                            modelUsed = modelForRequest,
+                            durationMs = streamDurationMs
                         )
                         withContext(Dispatchers.Main) {
                             updateMessages {
@@ -3364,7 +3382,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                         content = JsonPrimitive(finalContent),
                                         reasoning = accumulatedReasoning,
                                         imageUri = downloadedUris.firstOrNull(),
-                                        modelUsed = modelForRequest
+                                        modelUsed = modelForRequest,
+                                        durationMs = streamDurationMs
                                     )
                                 }
                             }
@@ -3487,6 +3506,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             )
 
             try {
+                val streamStartMs = System.currentTimeMillis()
                 httpClient.preparePost(activeChatUrl) {
                     header("Authorization", "Bearer $activeChatApiKey")
                     header("HTTP-Referer", "https://github.com/stardomains3/oxproxion/")
@@ -3510,6 +3530,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     var reasoningStarted = false
                     var finish_reason: String? = null
                     var finalUsage: UsageResponse? = null
+                    var providerName: String? = null
                     val toolCallBuffer = mutableListOf<ToolCall>()
                     val accumulatedAnnotations = mutableListOf<Annotation>()
                     val accumulatedImages = mutableListOf<String>()
@@ -3539,6 +3560,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                 }
 
                                 chunk.usage?.let { finalUsage = it }
+                                chunk.provider?.let { providerName = it }
 
                                 val choice = chunk.choices.firstOrNull()
                                 finish_reason = choice?.finish_reason ?: finish_reason
@@ -3714,6 +3736,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     } else ""
 
                     // --- 6. Final UI Update ---
+                    val streamDurationMs = System.currentTimeMillis() - streamStartMs
                     val hadToolCalls = toolCallBuffer.isNotEmpty()
                     if (hadToolCalls && !toolCallsHandledForTurn) {
                         val assistantMessage = FlexibleMessage(
@@ -3722,7 +3745,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                             toolCalls = toolCallBuffer,
                             imageUri = downloadedUris.firstOrNull(),
                             modelUsed = modelForRequest,
-                            cost = finalUsage?.cost
+                            cost = finalUsage?.cost,
+                            provider = providerName,
+                            promptTokens = finalUsage?.prompt_tokens,
+                            completionTokens = finalUsage?.completion_tokens,
+                            reasoningTokens = finalUsage?.completion_tokens_details?.reasoning_tokens,
+                            durationMs = streamDurationMs
                         )
                         withContext(Dispatchers.Main) {
                             updateMessages {
@@ -3744,7 +3772,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                                         reasoning = accumulatedReasoning,
                                         imageUri = downloadedUris.firstOrNull(),
                                         modelUsed = modelForRequest,
-                                        cost = finalUsage?.cost
+                                        cost = finalUsage?.cost,
+                                        provider = providerName,
+                                        promptTokens = finalUsage?.prompt_tokens,
+                                        completionTokens = finalUsage?.completion_tokens,
+                                        reasoningTokens = finalUsage?.completion_tokens_details?.reasoning_tokens,
+                                        durationMs = streamDurationMs
                                     )
                                 }
                             }
@@ -3788,6 +3821,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         messagesForApiRequest: List<FlexibleMessage>,
         thinkingMessage: FlexibleMessage?
     ) {
+        val requestStartMs = System.currentTimeMillis()
         withTimeout((sharedPreferencesHelper.getTimeoutMinutes().toLong() * 60_000L).milliseconds) {
             withContext(Dispatchers.IO) {
                 val sharedPreferencesHelper =
@@ -3928,7 +3962,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         role = "assistant",
                         content = JsonPrimitive(cleanContent ?: ("" + citationsMarkdown)),
                         toolCalls = toolCalls,
-                        modelUsed = modelForRequest
+                        modelUsed = modelForRequest,
+                        promptTokens = chatResponse.usage?.prompt_tokens,
+                        completionTokens = chatResponse.usage?.completion_tokens,
+                        durationMs = System.currentTimeMillis() - requestStartMs
                     )
                     updateMessages { list ->
                         if (thinkingMessage != null) {
@@ -3949,7 +3986,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         chatResponse,
                         thinkingMessage,
                         downloadedUris,
-                        modelUsed = modelForRequest
+                        modelUsed = modelForRequest,
+                        durationMs = System.currentTimeMillis() - requestStartMs
                     )
                 }
             }
@@ -3957,6 +3995,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     private suspend fun handleNonStreamedResponse(modelForRequest: String, messagesForApiRequest: List<FlexibleMessage>, thinkingMessage: FlexibleMessage?) {
+        val requestStartMs = System.currentTimeMillis()
         withTimeout((sharedPreferencesHelper.getTimeoutMinutes().toLong() * 60_000L).milliseconds) {
             withContext(Dispatchers.IO) {
                 val sharedPreferencesHelper =
@@ -4132,7 +4171,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         content = JsonPrimitive(choice.message.content ?: ("" + citationsMarkdown)),
                         toolCalls = toolCalls,
                         modelUsed = modelForRequest,
-                        cost = chatResponse.usage?.cost
+                        cost = chatResponse.usage?.cost,
+                        provider = chatResponse.provider,
+                        promptTokens = chatResponse.usage?.prompt_tokens,
+                        completionTokens = chatResponse.usage?.completion_tokens,
+                        reasoningTokens = chatResponse.usage?.completion_tokens_details?.reasoning_tokens,
+                        durationMs = System.currentTimeMillis() - requestStartMs
                     )
                     updateMessages { list ->
                         if (thinkingMessage != null) {
@@ -4155,7 +4199,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         thinkingMessage,
                         downloadedUris,
                         modelUsed = modelForRequest,
-                        cost = chatResponse.usage?.cost
+                        cost = chatResponse.usage?.cost,
+                        durationMs = System.currentTimeMillis() - requestStartMs
                     )  // NEW: Pass Uris
                 }
             }
@@ -4174,7 +4219,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         thinkingMessage: FlexibleMessage?,
         downloadedUris: List<String> = emptyList(),
         modelUsed: String? = null,
-        cost: Double? = null
+        cost: Double? = null,
+        durationMs: Long? = null
     ) {
         val message = chatResponse.choices.firstOrNull()?.message ?: throw IllegalStateException("No message")
         val responseText = message.content ?: "No response received."
@@ -4201,7 +4247,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             toolsUsed = thinkingMessage == null,
             reasoning = reasoningForDisplay + separator,
             modelUsed = modelUsed,
-            cost = cost
+            cost = cost,
+            provider = chatResponse.provider,
+            promptTokens = chatResponse.usage?.prompt_tokens,
+            completionTokens = chatResponse.usage?.completion_tokens,
+            reasoningTokens = chatResponse.usage?.completion_tokens_details?.reasoning_tokens,
+            durationMs = durationMs
         )
         if (downloadedUris.isNotEmpty()) {
             finalAiMessage = finalAiMessage.copy(imageUri = downloadedUris.first())
