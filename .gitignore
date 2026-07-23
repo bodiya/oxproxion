@@ -40,6 +40,8 @@ local.properties
 # Keystore files
 *.jks
 *.keystore
+# ...except the committed dev signing key used by CI (see keystore/README.md)
+!keystore/dev-signing.keystore
 release.properties
 
 # Log files
