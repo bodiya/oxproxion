@@ -709,7 +709,8 @@ class ChatAdapter(
             // 6. BUTTON LISTENERS (Lazy Calculation)
             exportButton.setOnClickListener { anchor ->
                 val fullRawMarkdown = ensureTableSpacing(reasoningText + text)
-                val htmlBlocks = HtmlCodeBlocks.extractHtmlBlocks(fullRawMarkdown)
+                val codeBlocks = HtmlCodeBlocks.extract(fullRawMarkdown)
+                val htmlBlocks = codeBlocks.htmlBlocks
                 val popup = PopupMenu(itemView.context, anchor)
                 popup.menu.apply {
                     add(0, EXPORT_PDF, 0, "Save as PDF")
@@ -743,8 +744,13 @@ class ChatAdapter(
                         }
                         EXPORT_SAVE_FILE -> { onSaveAsFile.invoke(text); true }
                         EXPORT_PREVIEW_HTML_BLOCK -> {
+                            val previewBlock = { block: String ->
+                                onPreviewHtml.invoke(
+                                    HtmlCodeBlocks.buildPreviewDocument(block, codeBlocks.cssBlocks, codeBlocks.jsBlocks)
+                                )
+                            }
                             if (htmlBlocks.size == 1) {
-                                onPreviewHtml.invoke(htmlBlocks[0])
+                                previewBlock(htmlBlocks[0])
                             } else {
                                 val labels = htmlBlocks.mapIndexed { index, block ->
                                     "Block ${index + 1} (${block.lines().size} lines)"
@@ -752,7 +758,7 @@ class ChatAdapter(
                                 MaterialAlertDialogBuilder(itemView.context)
                                     .setTitle("Preview HTML code block")
                                     .setItems(labels) { _, which ->
-                                        onPreviewHtml.invoke(htmlBlocks[which])
+                                        previewBlock(htmlBlocks[which])
                                     }
                                     .setNegativeButton("Cancel", null)
                                     .show()

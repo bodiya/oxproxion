@@ -8,17 +8,62 @@ object HtmlCodeBlocks {
 
     data class CodeBlock(val language: String, val code: String)
 
+    /**
+     * Code blocks relevant to an HTML preview: the renderable HTML blocks plus any
+     * standalone CSS/JS blocks from the same response that belong with them.
+     */
+    data class PreviewBlocks(
+        val htmlBlocks: List<String>,
+        val cssBlocks: List<String>,
+        val jsBlocks: List<String>
+    )
+
     private val HTML_LANGUAGES = setOf("html", "htm", "xhtml", "svg")
+    private val CSS_LANGUAGES = setOf("css")
+    private val JS_LANGUAGES = setOf("js", "javascript")
 
     /**
-     * Returns the contents of every fenced code block in [markdown] that holds HTML:
-     * blocks tagged with an HTML language, or untagged blocks whose content starts
-     * like an HTML document or SVG element.
+     * Extracts the fenced code blocks in [markdown] relevant to an HTML preview.
+     * HTML blocks are those tagged with an HTML language, or untagged blocks whose
+     * content starts like an HTML document or SVG element.
      */
-    fun extractHtmlBlocks(markdown: String): List<String> {
-        return extractFencedBlocks(markdown)
-            .filter { isHtml(it) }
-            .map { it.code }
+    fun extract(markdown: String): PreviewBlocks {
+        val blocks = extractFencedBlocks(markdown)
+        return PreviewBlocks(
+            htmlBlocks = blocks.filter { isHtml(it) }.map { it.code },
+            cssBlocks = blocks.filter { it.language in CSS_LANGUAGES }.map { it.code },
+            jsBlocks = blocks.filter { it.language in JS_LANGUAGES }.map { it.code }
+        )
+    }
+
+    /**
+     * Builds the document to preview from an HTML block, inlining any separate
+     * CSS/JS blocks the model produced alongside it: styles go before </head>
+     * (falling back to </body>, </html>, or the end of the document) and scripts
+     * before </body> (falling back to </html> or the end) so they run after the
+     * markup they reference.
+     */
+    fun buildPreviewDocument(html: String, cssBlocks: List<String>, jsBlocks: List<String>): String {
+        var doc = html
+        if (cssBlocks.isNotEmpty()) {
+            val styleTag = "<style>\n${cssBlocks.joinToString("\n\n")}\n</style>\n"
+            doc = insertBefore(doc, Regex("(?i)</head>"), styleTag)
+                ?: insertBefore(doc, Regex("(?i)</body>"), styleTag)
+                ?: insertBefore(doc, Regex("(?i)</html>"), styleTag)
+                ?: (doc + "\n" + styleTag)
+        }
+        if (jsBlocks.isNotEmpty()) {
+            val scriptTags = jsBlocks.joinToString("") { "<script>\n$it\n</script>\n" }
+            doc = insertBefore(doc, Regex("(?i)</body>"), scriptTags)
+                ?: insertBefore(doc, Regex("(?i)</html>"), scriptTags)
+                ?: (doc + "\n" + scriptTags)
+        }
+        return doc
+    }
+
+    private fun insertBefore(doc: String, anchor: Regex, insertion: String): String? {
+        val match = anchor.find(doc) ?: return null
+        return doc.replaceRange(match.range.first, match.range.first, insertion)
     }
 
     private fun extractFencedBlocks(markdown: String): List<CodeBlock> {
