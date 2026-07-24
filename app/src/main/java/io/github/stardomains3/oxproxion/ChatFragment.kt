@@ -1653,6 +1653,13 @@ class ChatFragment : Fragment(R.layout.fragment_chat), OnKeyboardShortcutListene
             },
             onSaveAsFile = { content ->
                 showSaveFileDialog(content)
+            },
+            onPreviewHtml = { html ->
+                parentFragmentManager.beginTransaction()
+                    .hide(this)
+                    .add(R.id.fragment_container, HtmlPreviewFragment.newInstance(html))
+                    .addToBackStack(null)
+                    .commit()
             }
 
         )

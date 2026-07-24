@@ -62,7 +62,8 @@ class ChatAdapter(
     private val onSaveHtml: (String) -> Unit,
     private val onSaveText: (Int, String) -> Unit,
     private val onCollapse: () -> Unit,
-    private val onSaveAsFile: (String) -> Unit
+    private val onSaveAsFile: (String) -> Unit,
+    private val onPreviewHtml: (String) -> Unit
 
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
@@ -307,6 +308,7 @@ class ChatAdapter(
         private const val EXPORT_VIEW_HTML = 7
         private const val EXPORT_SAVE_HTML = 8
         private const val EXPORT_SAVE_FILE = 9
+        private const val EXPORT_PREVIEW_HTML_BLOCK = 10
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -707,6 +709,7 @@ class ChatAdapter(
             // 6. BUTTON LISTENERS (Lazy Calculation)
             exportButton.setOnClickListener { anchor ->
                 val fullRawMarkdown = ensureTableSpacing(reasoningText + text)
+                val htmlBlocks = HtmlCodeBlocks.extractHtmlBlocks(fullRawMarkdown)
                 val popup = PopupMenu(itemView.context, anchor)
                 popup.menu.apply {
                     add(0, EXPORT_PDF, 0, "Save as PDF")
@@ -716,8 +719,11 @@ class ChatAdapter(
                     add(0, EXPORT_JPG, 4, "Save as JPG")
                     add(0, EXPORT_WEBP, 5, "Save as WebP")
                     add(0, EXPORT_VIEW_HTML, 6, "View as HTML")
-                    add(0, EXPORT_SAVE_HTML, 7, "Save as HTML")
-                    add(0, EXPORT_SAVE_FILE, 8, "Save as file…")
+                    if (htmlBlocks.isNotEmpty()) {
+                        add(0, EXPORT_PREVIEW_HTML_BLOCK, 7, if (htmlBlocks.size == 1) "Preview HTML code block" else "Preview HTML code block…")
+                    }
+                    add(0, EXPORT_SAVE_HTML, 8, "Save as HTML")
+                    add(0, EXPORT_SAVE_FILE, 9, "Save as file…")
                 }
                 popup.setOnMenuItemClickListener { item ->
                     when (item.itemId) {
@@ -736,6 +742,23 @@ class ChatAdapter(
                             true
                         }
                         EXPORT_SAVE_FILE -> { onSaveAsFile.invoke(text); true }
+                        EXPORT_PREVIEW_HTML_BLOCK -> {
+                            if (htmlBlocks.size == 1) {
+                                onPreviewHtml.invoke(htmlBlocks[0])
+                            } else {
+                                val labels = htmlBlocks.mapIndexed { index, block ->
+                                    "Block ${index + 1} (${block.lines().size} lines)"
+                                }.toTypedArray()
+                                MaterialAlertDialogBuilder(itemView.context)
+                                    .setTitle("Preview HTML code block")
+                                    .setItems(labels) { _, which ->
+                                        onPreviewHtml.invoke(htmlBlocks[which])
+                                    }
+                                    .setNegativeButton("Cancel", null)
+                                    .show()
+                            }
+                            true
+                        }
                         else -> false
                     }
                 }
